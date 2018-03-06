@@ -38,6 +38,11 @@ def get_suite_parser():
         help='Do a dry run; do not schedule anything',
     )
     parser.add_argument(
+        '--run-name',
+        help=('Override run name; can be used with external CI systems'
+              ' to easy result reference.'),
+    )
+    parser.add_argument(
         '-s', '--suite',
         help='The suite to schedule',
     )

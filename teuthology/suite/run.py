@@ -36,7 +36,7 @@ class Run(object):
         args must be a config.YamlConfig object
         """
         self.args = args
-        self.name = self.make_run_name()
+        self.name = self.args.run_name or self.make_run_name()
 
         if self.args.ceph_repo:
             config.ceph_git_url = self.args.ceph_repo
