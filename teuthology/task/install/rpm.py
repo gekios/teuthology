@@ -89,7 +89,7 @@ def _zypper_addrepo(remote, repo_list):
         if 'priority' in repo:
             remote.run(args=[
                 'sudo', 'zypper', '-n', 'addrepo', '--refresh', '--no-gpgcheck',
-                '-p', repo['priority'], repo['url'], repo['name'],
+                '-p', str(repo['priority']), repo['url'], repo['name'],
             ])
         else:
             remote.run(args=[
