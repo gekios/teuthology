@@ -807,7 +807,7 @@ class TeuthologyOpenStack(OpenStack):
             def repo(name, url):
                 if '!' in name:
                     n, p = name.split('!', 1)
-                    return {'name': n, 'priority': p, 'url': url}
+                    return {'name': n, 'priority': int(p), 'url': url}
                 else:
                     return {'name': name, 'url': url}
             repos = [repo(k, v)
