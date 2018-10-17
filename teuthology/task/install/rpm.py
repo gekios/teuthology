@@ -21,8 +21,8 @@ def _remove(ctx, config, remote, rpm):
     dist_release = remote_os.name
     rpm = _package_overrides(rpm, remote_os)
 
-    install_packages = config.get('install_packages')
-    if install_packages:
+    install_ceph_packages = config.get('install_ceph_packages')
+    if install_ceph_packages:
         log.info("Removing packages: {pkglist} on rpm system.".format(
             pkglist=", ".join(rpm)))
         if dist_release in ['opensuse', 'sle']:
@@ -122,7 +122,7 @@ def _update_package_list_and_install(ctx, remote, rpm, config):
     dist_release = remote_os.name
     log.debug("_update_package_list_and_install: config is {}".format(config))
     repos = config.get('repos')
-    install_packages = config.get('install_packages')
+    install_ceph_packages = config.get('install_ceph_packages')
 
     if repos:
         log.debug("Adding repos: %s" % repos)
@@ -137,8 +137,8 @@ def _update_package_list_and_install(ctx, remote, rpm, config):
         log.info('Package version is %s', builder.version)
         builder.install_repo()
 
-    if not install_packages:
-        log.info("install_packages set to False: not installing Ceph packages")
+    if not install_ceph_packages:
+        log.info("install_ceph_packages set to False: not installing Ceph packages")
         # Although "librados2" is an indirect dependency of ceph-test, we
         # install it separately because, otherwise, ceph-test cannot be
         # installed (even with --force) when there are several conflicting
