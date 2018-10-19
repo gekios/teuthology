@@ -221,12 +221,14 @@ class OpenStack(object):
         self.username = 'ubuntu'
         self.up_string = "UNKNOWN"
         self.teuthology_suite = 'teuthology-suite'
+        self.os_vars = {k: v for (k, v) in os.environ.items() if k.startswith('OS_')}
 
     token = None
     token_expires = None
     token_cache_duration = 3600
 
     def cache_token(self):
+        return False
         if self.get_provider() != 'ovh':
             return False
         if (OpenStack.token is None and
@@ -257,18 +259,18 @@ class OpenStack(object):
         if (type == 'compute' or
             cmd.startswith("server ") or
             cmd.startswith("flavor ")):
-            url = "https://compute.{reg}.cloud.ovh.net/v2/{tenant}"
+            url = "https://compute.{reg}.cloud.ovh.net/v2"
         elif (type == 'network' or
               cmd.startswith("ip ") or
               cmd.startswith("security ") or
               cmd.startswith("network ")):
-            url = "https://network.compute.{reg}.cloud.ovh.net/"
+            url = "https://network.compute.{reg}.cloud.ovh.net/v2"
         elif (type == 'image' or
               cmd.startswith("image ")):
-            url = "https://image.compute.{reg}.cloud.ovh.net/"
+            url = "https://image.compute.{reg}.cloud.ovh.net/v2"
         elif (type == 'volume' or
               cmd.startswith("volume ")):
-            url = "https://volume.compute.{reg}.cloud.ovh.net/v2/{tenant}"
+            url = "https://volume.compute.{reg}.cloud.ovh.net/v2"
         if url != "":
             url = url.format(reg=os.environ['OS_REGION_NAME'],
                              tenant=os.environ['OS_TENANT_ID'])
@@ -278,9 +280,13 @@ class OpenStack(object):
         url = self.get_os_url(cmd, kwargs.get('type'))
         if url != "":
             if self.cache_token():
+                # Cleanup OS_ vars because they conflict with token mode
+                for k, v in self.os_vars.items():
+                    if k in os.environ and k != 'OS_TOKEN_VALUE':
+                        del os.environ[k]
                 os.environ['OS_TOKEN'] = os.environ['OS_TOKEN_VALUE']
                 os.environ['OS_URL'] = url
-        if re.match('(server|flavor|ip|security|network|image|volume|keypair)', cmd):
+        if re.match('(server|flavor|floating|ip|security|network|image|volume|keypair)', cmd):
             cmd = "openstack --quiet " + cmd
         try:
             status = misc.sh(cmd)
@@ -289,6 +295,8 @@ class OpenStack(object):
                 del os.environ['OS_TOKEN']
             if 'OS_URL' in os.environ:
                 del os.environ['OS_URL']
+            for k, v in self.os_vars.items():
+                os.environ[k] = v
         return status
     
     def set_provider(self):
@@ -1204,7 +1212,7 @@ openstack security group rule create --protocol udp --src-group {server} --dst-p
     @staticmethod
     def get_os_floating_ips():
         try:
-            ips = json.loads(OpenStack().run("ip floating list -f json"))
+            ips = json.loads(OpenStack().run("floating ip list -f json"))
         except subprocess.CalledProcessError as e:
             log.warning(e)
             if e.returncode == 1:

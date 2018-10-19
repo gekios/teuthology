@@ -77,8 +77,9 @@ setup(
                       # redundant, because python-openstackclient requires
                       # Babel, and installs 2.3.3, which is forbidden by
                       # python-novaclient 4.0.0
-                      #'python-novaclient',
-                      #'python-openstackclient',
+                      #'python-novaclient==6.0.0',
+                      #'python-openstackclient==3.9.0',
+                      'python-openstackclient==3.16.1',
                       # Copy the below from python-openstackclient's
                       # requirements to avoid a conflict
                       #'openstacksdk!=0.9.11,!=0.9.12,>=0.9.10',
