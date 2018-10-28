@@ -15,6 +15,8 @@ import os
 import pwd
 import tempfile
 import netaddr
+from netaddr.strategy.ipv6 import valid_str as _is_ipv6
+from netaddr.strategy.ipv4 import valid_str as _is_ipv4
 
 import console
 
@@ -44,8 +46,8 @@ class Remote(object):
             # os.getlogin() doesn't work on non-login shells. The following
             # should work on any unix system
             self.user = pwd.getpwuid(os.getuid()).pw_name
-            hostname = name
-        self._shortname = shortname or hostname.split('.')[0]
+            self._hostname = name
+        self._shortname = shortname
         self._host_key = host_key
         self.keep_alive = keep_alive
         self._console = console
@@ -146,10 +148,17 @@ class Remote(object):
             self._machine_type = remote_info.get("machine_type", None)
         return self._machine_type
 
+    @staticmethod
+    def _host_shortname(hostname):
+        if _is_ipv4(hostname) or _is_ipv6(hostname):
+            return hostname
+        else:
+            return hostname.split('.', 1)[0]
+
     @property
     def shortname(self):
         if self._shortname is None:
-            self._shortname = self.hostname.split('.')[0]
+            self._shortname = self._host_shortname(self.hostname)
         return self._shortname
 
     @property
