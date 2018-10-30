@@ -229,6 +229,7 @@ def get_initial_tasks(lock, config, machine_type):
     if 'roles' in config:
         init_tasks.extend([
             {'internal.archive': None},
+            {'internal.archive_artifacts': None},
             {'internal.coredump': None},
             {'internal.sudo': None},
             {'internal.syslog': None},

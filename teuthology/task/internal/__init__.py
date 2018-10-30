@@ -459,6 +459,78 @@ def coredump(ctx, config):
                         'Found coredumps on {rem}'.format(rem=rem)
 
 
+import teuthology
+@contextlib.contextmanager
+def archive_artifacts(ctx, config):
+    """
+    Stash a artifacts.
+    override:
+        archive_artifacts:
+        - '/etc/zypp/repos.d'
+        - '/etc/resolv.conf'
+        - name: 'zypper-repos'
+          exec: 'sudo zypper lr'
+        - name: 'nslookup-ceph.ci.suse.de'
+          exec: 'nslookup ceph-ci.suse.de 2>&1'
+    """
+    if ctx.archive is None:
+        # disable this whole feature if we're not going to archive the data
+        # anyway
+        yield
+        return
+
+    log.info('Enabling artifacts saving...')
+    archive_dir = misc.get_archive_dir(ctx)
+    overrides = ctx.config.get('overrides')
+    if overrides:
+        archive_artifacts = overrides.get('archive_artifacts', [])
+        log.debug('Archive artifact overrides: %s' % archive_artifacts)
+    log.debug('config %s' % config)
+
+    try:
+        yield
+    finally:
+        if archive_artifacts:
+            log.debug('Found %s artifacts, processing... ' % len(archive_artifacts))
+        else:
+            return
+        for id, artifact in enumerate(archive_artifacts):
+            if isinstance(artifact, dict):
+                name = artifact.get('name', None)
+                if 'exec' in artifact:
+                    run.wait(
+                        ctx.cluster.run(
+                            args='%s | tee %s/artifact-%s' % (
+                                     artifact['exec'],
+                                     archive_dir,
+                                     name or "artifact-%s" % id,
+                            ),
+                            wait=False,
+                        )
+                    )
+            elif isinstance(artifact, str):
+                run.wait(
+                    ctx.cluster.run(
+                        args='cp -r %s %s | true' % (
+                            artifact,
+                            archive_dir,
+                        ),
+                        wait=False,
+                    )
+                )
+
+        #logdir = os.path.join(ctx.archive, 'remote')
+        #if (not os.path.exists(logdir)):
+        #    os.mkdir(logdir)
+        #for r in ctx.cluster.remotes.iterkeys():
+        #    path = os.path.join(logdir, r.shortname)
+        #    misc.pull_directory(r, archive_dir, path)
+        #    # Check for coredumps and pull binaries
+        #    fetch_binaries_for_coredumps(path, r)
+        # set status = 'fail' if the dir is still there = coredumps were
+        # seen
+
+
 @contextlib.contextmanager
 def archive_upload(ctx, config):
     """

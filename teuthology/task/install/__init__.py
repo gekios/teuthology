@@ -135,6 +135,8 @@ def remove_packages(ctx, config, pkgs):
     with parallel() as p:
         for remote in ctx.cluster.remotes.iterkeys():
             system_type = teuthology.get_system_type(remote)
+            if remote.os.name in ['opensuse', 'sle']:
+                remote.run(args='zypper lr')
             p.spawn(remove_pkgs[
                     system_type], ctx, config, remote, pkgs[system_type])
 
