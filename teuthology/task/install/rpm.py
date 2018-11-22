@@ -196,34 +196,41 @@ def _update_package_list_and_install(ctx, remote, rpm, config):
         pkg_mng_install_opts = ''
         pkg_mng_remove_opts = ''
 
-    for cpack in rpm:
-        pkg = None
-        if ldir:
-            pkg = "{ldir}/{cpack}".format(
-                ldir=ldir,
-                cpack=cpack,
-            )
-            remote.run(
-                args=list(_flat2gen(['if', 'test', '-e',
-                      run.Raw(pkg), run.Raw(';'), 'then',
-                      'sudo', pkg_mng_cmd, pkg_mng_opts, 'remove',
-                      pkg_mng_remove_opts, pkg, run.Raw(';'),
-                      'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
-                      pkg_mng_install_opts, pkg, run.Raw(';'),
-                      'fi'])))
-        if pkg is None:
+    if system_pkglist:
+        if rpm:
             remote.run(args=list(_flat2gen([
                 'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
-                pkg_mng_install_opts, cpack
+                pkg_mng_install_opts, rpm
             ])))
-        else:
-            remote.run(
-                args=list(_flat2gen(['if', 'test', run.Raw('!'), '-e',
-                      run.Raw(pkg), run.Raw(';'), 'then',
-                      'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
-                      pkg_mng_install_opts,
-                      cpack, run.Raw(';'),
-                      'fi'])))
+    else:
+        for cpack in rpm:
+            pkg = None
+            if ldir:
+                pkg = "{ldir}/{cpack}".format(
+                    ldir=ldir,
+                    cpack=cpack,
+                )
+                remote.run(
+                    args=list(_flat2gen(['if', 'test', '-e',
+                          run.Raw(pkg), run.Raw(';'), 'then',
+                          'sudo', pkg_mng_cmd, pkg_mng_opts, 'remove',
+                          pkg_mng_remove_opts, pkg, run.Raw(';'),
+                          'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
+                          pkg_mng_install_opts, pkg, run.Raw(';'),
+                          'fi'])))
+            if pkg is None:
+                remote.run(args=list(_flat2gen([
+                    'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
+                    pkg_mng_install_opts, cpack
+                ])))
+            else:
+                remote.run(
+                    args=list(_flat2gen(['if', 'test', run.Raw('!'), '-e',
+                          run.Raw(pkg), run.Raw(';'), 'then',
+                          'sudo', pkg_mng_cmd, pkg_mng_opts, 'install',
+                          pkg_mng_install_opts,
+                          cpack, run.Raw(';'),
+                          'fi'])))
 
 
 def _yum_fix_repo_priority(remote, project, uri):
