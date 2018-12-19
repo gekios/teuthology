@@ -256,8 +256,7 @@ class OpenStack(object):
         return True
 
     def get_os_url(self, cmd, type=None):
-        if self.get_provider() != 'ovh':
-            return ""
+        return ""
         url = ""
         if (type == 'compute' or
             cmd.startswith("server ") or
