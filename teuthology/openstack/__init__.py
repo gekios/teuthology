@@ -232,6 +232,9 @@ class OpenStack(object):
     token = None
     token_expires = None
     token_cache_duration = 3600
+    versions = None
+    os_env = None
+    os_ver = None
 
     def cache_token(self):
         if self.get_provider() != 'ovh':
@@ -261,6 +264,30 @@ class OpenStack(object):
         if self.get_provider() != 'ovh':
             return ""
         url = ""
+        if not self.os_ver:
+            (name, ver) = misc.sh('openstack --version').split(' ')
+            self.os_ver = ver.strip().split('.')
+            log.debug("openstack ver: %s" % self.os_ver)
+        if not self.versions and self.os_ver > (3,16):
+            versions_json = misc.sh('openstack versions show --region-name {} -f json'
+                                    .format(os.environ['OS_REGION_NAME']))
+            versions_list = json.loads(versions_json)
+            current_versions = [(i["Service Type"], i["Endpoint"], i["Version"])
+                             for i in versions_list if i["Status"] == "CURRENT"]
+            log.debug("Current versions: %s" % current_versions)
+            self.versions = dict()
+            for x in [i for i in versions_list if i["Status"] == "CURRENT"]:
+                if x["Service Type"] not in self.versions:
+                    self.versions[x["Service Type"]] = x["Endpoint"]
+            log.debug("Endpoint %s" % self.versions)
+            self.os_env = {k: v for (k,v) in os.environ.items() if k.startswith('OS_') }
+
+        if self.os_ver > (3,16):
+            if type in self.versions:
+                url = self.versions[type]
+            return url
+        # -----
+
         if (type == 'compute' or
             cmd.startswith("server ") or
             cmd.startswith("flavor ")):
@@ -285,9 +312,12 @@ class OpenStack(object):
         url = self.get_os_url(cmd, kwargs.get('type'))
         if url != "":
             if self.cache_token():
+                if self.os_ver > (3, 16):
+                    for k in self.os_env.keys():
+                        del os.environ[k]
                 os.environ['OS_TOKEN'] = os.environ['OS_TOKEN_VALUE']
                 os.environ['OS_URL'] = url
-        if re.match('(server|flavor|ip|security|network|image|volume|keypair)', cmd):
+        if re.match('(server|flavor|floating|ip|security|network|image|volume|keypair)', cmd):
             cmd = "openstack --quiet " + cmd
         try:
             status = misc.sh(cmd)
@@ -296,6 +326,9 @@ class OpenStack(object):
                 del os.environ['OS_TOKEN']
             if 'OS_URL' in os.environ:
                 del os.environ['OS_URL']
+            if self.os_ver > (3, 16):
+                for k, v in self.os_env.items():
+                    os.environ[k] = v
         return status
     
     def set_provider(self):
@@ -1276,7 +1309,7 @@ openstack security group rule create --protocol udp --src-group {server} --dst-p
     @staticmethod
     def get_os_floating_ips():
         try:
-            ips = json.loads(OpenStack().run("ip floating list -f json"))
+            ips = json.loads(OpenStack().run("floating ip list -f json"))
         except subprocess.CalledProcessError as e:
             log.warning(e)
             if e.returncode == 1:
