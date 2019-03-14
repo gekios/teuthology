@@ -80,7 +80,7 @@ Linux)
 	fi
 	;;
     opensuse*|suse|sles)
-        for package in gcc libmysqld-devel zlib-devel python-pip python-devel python-virtualenv libev-devel libmysqlclient-devel libffi-devel; do
+        for package in gcc zlib-devel python-pip python-devel python-virtualenv libev-devel libmysqlclient-devel libffi-devel; do
             if [ "$(rpm -q $package)" == "package $package is not installed" ]; then
                 if [ "$(rpm -q --whatprovides $package)" == "no package provides $package" ]; then
                     missing="${missing:+$missing }$package"
